@@ -92,39 +92,50 @@ void OneButton::tick() {
   int buttonLevel = digitalRead(_pin);
   unsigned long now = millis();
 
-  if (_state == WAIT_PRESS) {
-    if (buttonLevel == _buttonPressed) {
-      _state = WAIT_RELEASE;
-      _startTime = now;
-    }
-  } else if (_state == WAIT_RELEASE) {
-    if (buttonLevel == _buttonReleased) {
-      _state = WAIT_SECOND_CLICK;
-    } else if ((buttonLevel == _buttonPressed) && (now > _startTime + _pressTicks)) {
-      _startTime = now;
-      if (_pressFunc) _pressFunc();
-      _state = IN_LONG_PRESS;
-    }
-  } else if (_state == WAIT_SECOND_CLICK) {
-    if (now > _startTime + _clickTicks) {
-      // this was only a single short click
-      if (_clickFunc) _clickFunc();
-      _state = WAIT_PRESS;
-    } else if (buttonLevel == _buttonPressed) {
-      _state = WAIT_SECOND_RELEASE;
-    }
-  } else if (_state == WAIT_SECOND_RELEASE) {
-    if (buttonLevel == _buttonReleased) {
-      // this was a 2 click sequence.
-      if (_doubleClickFunc) _doubleClickFunc();
-      _state = WAIT_PRESS;
-    }
-  } else if (_state == IN_LONG_PRESS) {
-    if (buttonLevel == _buttonReleased) {
-      _state = WAIT_PRESS;
-    } else if (_repeat && (now > _startTime + _repeatTicks)) {
-      _startTime = now;
-      if (_pressFunc) _pressFunc();
-    }  
+  switch (_state) {
+    case WAIT_PRESS: 
+      if (buttonLevel == _buttonPressed) {
+        _state = WAIT_RELEASE;
+        _startTime = now;
+      }
+      break;
+
+     case WAIT_RELEASE:
+       if (buttonLevel == _buttonReleased) {
+         _state = WAIT_SECOND_CLICK;
+       } else if ((buttonLevel == _buttonPressed)
+             && (now > _startTime + _pressTicks)) {
+         _startTime = now;
+         if (_pressFunc) _pressFunc();
+         _state = IN_LONG_PRESS;
+       }
+       break;
+
+     case WAIT_SECOND_CLICK:
+       if (now > _startTime + _clickTicks) {
+         // this was only a single short click
+         if (_clickFunc) _clickFunc();
+         _state = WAIT_PRESS;
+       } else if (buttonLevel == _buttonPressed) {
+         _state = WAIT_SECOND_RELEASE;
+       }
+       break;
+
+     case WAIT_SECOND_RELEASE:
+       if (buttonLevel == _buttonReleased) {
+         // this was a 2 click sequence.
+         if (_doubleClickFunc) _doubleClickFunc();
+         _state = WAIT_PRESS;
+       }
+       break;
+
+     case IN_LONG_PRESS:
+       if (buttonLevel == _buttonReleased) {
+         _state = WAIT_PRESS;
+       } else if (_repeat && (now > _startTime + _repeatTicks)) {
+         _startTime = now;
+         if (_pressFunc) _pressFunc();
+       }  
+       break;
   }
 }
