@@ -1,35 +1,36 @@
 /*
- This is a sample sketch to show how to use the OneButtonLibrary
- to detect double-click events on a button. 
+ This is a sample sketch to show how to use the OneButton library
+ to detect double-click events on a button.
  The library internals are explained at
  http://www.mathertel.de/Arduino/OneButtonLibrary.aspx
   
- Setup a test circuit:
+ Set up a test circuit:
  * Connect a pushbutton to pin A1 (ButtonPin) and ground.
- * The pin 13 (StatusPin) is used for output attach a led and resistor to ground
-   or see the built-in led on the standard arduino board.
+ * Pin 13 (StatusPin) is used for output. Attach an LED and a resistor to ground
+   or see the built-in led on the standard Arduino board.
    
- The Sketch shows how to setup the library and bind a special function to the doubleclick event.
- In the loop function the button.tick function has to be called as often as you like.
+ The Sketch shows how to set up the library and bind function to the doubleclick event.
+ In the loop function, the button.tick() function has to be called as often as you like.
 */
  
 // 03.03.2011 created by Matthias Hertel
 // 01.12.2011 extension changed to work with the Arduino 1.0 environment
+// 21.09.2012 Balázs Lécz: style cleanups
 
 #include "OneButton.h"
 
-// Setup a new OneButton on pin A1.  
+// Set up a new OneButton on pin A1.
 OneButton button(A1, true);
 
 
-// setup code here, to run once:
+// Setup code (run once).
 void setup() {
-  // enable the standard led on pin 13.
-  pinMode(13, OUTPUT);      // sets the digital pin as output
+  // Enable the standard LED on pin 13.
+  pinMode(13, OUTPUT); // Sets the digital pin as output.
   
-  // link the doubleclick function to be called on a doubleclick event.   
-  button.attachDoubleClick(doubleclick);
-} // setup
+  // Link the doubleclickHandler() function to the double-click event.   
+  button.attachDoubleClick(doubleclickHandler);
+}
   
 
 // main code here, to run repeatedly: 
@@ -39,15 +40,14 @@ void loop() {
 
   // You can implement other code in here or just wait a while 
   delay(10);
-} // loop
+}
 
 
-// this function will be called when the button was pressed 2 times in a short timeframe.
-void doubleclick() {
+// This function will be called when the button has been pressed twice in a short timeframe.
+void doubleclickHandler() {
   static int m = LOW;
   // reverse the LED 
   m = !m;
   digitalWrite(13, m);
-} // doubleclick
+}
 
-// End

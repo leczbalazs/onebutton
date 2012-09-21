@@ -8,135 +8,123 @@
 // 02.10.2010 created by Matthias Hertel
 // 21.04.2011 support of active LOW and active HIGH button signal input.
 // 01.12.2011 include file changed to work with the Arduino 1.0 environment
-// 21.09.2012 Balázs Lécz: added support for repeat; optimized default timings
+// 21.09.2012 Balázs Lécz: added support for repeat; optimized default timings; readability cleanups
 // -----
 
 #include "OneButton.h"
 
-// ----- Initialization and Default Values -----
+// Possible states
+#define WAIT_PRESS 0
+#define WAIT_RELEASE 1
+#define WAIT_SECOND_CLICK 2
+#define WAIT_SECOND_RELEASE 3
+#define IN_LONG_PRESS 4
 
-OneButton::OneButton(int pin, int activeLow)
-{
+// Timeout for detecting a single click [milliseconds]
+#define DEFAULT_CLICK_TIMEOUT 80 
+
+// Timeout for detecting a long-press [milliseconds]
+#define DEFAULT_PRESS_TIMEOUT 750
+
+// Delay between two repetitions [milliseconds]
+#define DEFAULT_REPEAT_DELAY 60
+
+OneButton::OneButton(int pin, boolean activeLow) {
   pinMode(pin, INPUT); // sets pin as input
   _pin = pin;
 
-  _clickTicks = 80; // timeout for detecting a single click [milliseconds]
-  _pressTicks = 750; // timeout for detecting a long-press [milliseconds]
-  _repeatTicks = 60; // delay between two repetitions [milliseconds]
+  _clickTicks = DEFAULT_CLICK_TIMEOUT;
+  _pressTicks = DEFAULT_PRESS_TIMEOUT;
+  _repeatTicks = DEFAULT_REPEAT_DELAY;
 
-  _state = 0; // starting with state 0: waiting for button to be pressed
+  _state = WAIT_PRESS; // starting state: waiting for button to be pressed
 
   if (activeLow) {
-    // button connects ground to the pin when pressed.
-    _buttonReleased = HIGH; // notPressed
+    // Button connects ground to the pin when pressed.
+    _buttonReleased = HIGH;
     _buttonPressed = LOW;
-    digitalWrite(pin, HIGH);   // turn on pulldown resistor
-  } 
-  else {
-    // button connects Vcc to the pin when pressed.
+    digitalWrite(pin, HIGH);  // turn on pulldown resistor
+  } else {
+    // Button connects Vcc to the pin when pressed.
     _buttonReleased = LOW;
     _buttonPressed = HIGH;
   }
+}
 
-} // OneButton
 
-
-// explicitely set the number of millisec that have to pass by before a click is detected.
 void OneButton::setClickTicks(int ticks) { 
   _clickTicks = ticks;
-} // setClickTicks
+} 
 
 
-// explicitely set the number of millisec that have to pass by before a lonn button press is detected.
 void OneButton::setPressTicks(int ticks) {
   _pressTicks = ticks;
-} // setPressTicks
+}
 
 
 void OneButton::setRepeatTicks(int ticks) {
   _repeatTicks = ticks;
 }
 
+
 void OneButton::setRepeat(boolean repeat) {
   _repeat = repeat;
 }
 
-// save function for click event
-void OneButton::attachClick(callbackFunction newFunction)
-{
+
+void OneButton::attachClick(callbackFunction newFunction) {
   _clickFunc = newFunction;
-} // attachClick
+}
 
 
-// save function for doubleClick event
-void OneButton::attachDoubleClick(callbackFunction newFunction)
-{
+void OneButton::attachDoubleClick(callbackFunction newFunction) {
   _doubleClickFunc = newFunction;
-} // attachDoubleClick
+}
 
 
-// save function for press event
-void OneButton::attachPress(callbackFunction newFunction, boolean repeat)
-{
+void OneButton::attachPress(callbackFunction newFunction, boolean repeat) {
   _pressFunc = newFunction;
   _repeat = repeat;
-} // attachPress
+}
 
 
-void OneButton::tick(void)
-{
-  // Detect the input information 
-  int buttonLevel = digitalRead(_pin); // current button signal.
-  unsigned long now = millis(); // current (relative) time in msecs.
+void OneButton::tick() {
+  int buttonLevel = digitalRead(_pin);
+  unsigned long now = millis();
 
-  // Implementation of the state machine
-  if (_state == 0) { // waiting for menu pin being pressed.
+  if (_state == WAIT_PRESS) {
     if (buttonLevel == _buttonPressed) {
-      _state = 1; // step to state 1
-      _startTime = now; // remember starting time
-    } // if
-
-  } else if (_state == 1) { // waiting for menu pin being released.
+      _state = WAIT_RELEASE;
+      _startTime = now;
+    }
+  } else if (_state == WAIT_RELEASE) {
     if (buttonLevel == _buttonReleased) {
-      _state = 2; // step to state 2
-
+      _state = WAIT_SECOND_CLICK;
     } else if ((buttonLevel == _buttonPressed) && (now > _startTime + _pressTicks)) {
       _startTime = now;
       if (_pressFunc) _pressFunc();
-      _state = 6; // step to state 6
-    } else {
-      // wait. Stay in this state.
-    } // if
-
-  } else if (_state == 2) { // waiting for menu pin being pressed the second time or timeout.
+      _state = IN_LONG_PRESS;
+    }
+  } else if (_state == WAIT_SECOND_CLICK) {
     if (now > _startTime + _clickTicks) {
       // this was only a single short click
       if (_clickFunc) _clickFunc();
-      _state = 0; // restart.
-
+      _state = WAIT_PRESS;
     } else if (buttonLevel == _buttonPressed) {
-      _state = 3; // step to state 3
-    } // if
-
-  } else if (_state == 3) { // waiting for menu pin being released finally.
+      _state = WAIT_SECOND_RELEASE;
+    }
+  } else if (_state == WAIT_SECOND_RELEASE) {
     if (buttonLevel == _buttonReleased) {
       // this was a 2 click sequence.
       if (_doubleClickFunc) _doubleClickFunc();
-      _state = 0; // restart.
-    } // if
-
-  } else if (_state == 6) { // waiting for menu pin being release after long press.
+      _state = WAIT_PRESS;
+    }
+  } else if (_state == IN_LONG_PRESS) {
     if (buttonLevel == _buttonReleased) {
-      _state = 0; // restart.
+      _state = WAIT_PRESS;
     } else if (_repeat && (now > _startTime + _repeatTicks)) {
       _startTime = now;
       if (_pressFunc) _pressFunc();
     }  
-
-  } // if  
-} // OneButton.tick()
-
-
-// end.
-
-
+  }
+}
