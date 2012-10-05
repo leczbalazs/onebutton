@@ -16,6 +16,9 @@
 
 #include "Arduino.h"
 
+#define NO_REPEAT false
+#define REPEAT true
+
 extern "C" {
   typedef void (*callbackFunction)(void);
 }
@@ -23,7 +26,7 @@ extern "C" {
 
 class OneButton {
 public:
-  OneButton(int pin, boolean activeLow);
+  OneButton(int pin, boolean activeLow, boolean repeat);
 
   void setClickTicks(int ticks);
   void setPressTicks(int ticks);
@@ -32,10 +35,7 @@ public:
 
   void attachClick(callbackFunction newFunction);
   void attachDoubleClick(callbackFunction newFunction);
-  void attachPress(callbackFunction newFunction, boolean repeat);
-  void attachPress(callbackFunction newFunction) {
-    attachPress(newFunction, false);
-  }
+  void attachLongPress(callbackFunction newFunction);
 
   // call this function every few milliseconds for handling button events.
   void tick();
@@ -43,7 +43,7 @@ public:
 private:
   int _pin; // hardware pin number
   int _clickTicks;
-  int _pressTicks;
+  int _longPressTicks;
   int _repeatTicks;
   
   int _buttonReleased;
@@ -53,10 +53,9 @@ private:
   // Function pointers to event handlers
   callbackFunction _clickFunc;
   callbackFunction _doubleClickFunc;
-  callbackFunction _pressFunc;
+  callbackFunction _longPressFunc;
 
   int _state;
   unsigned long _startTime;
 };
-
 #endif

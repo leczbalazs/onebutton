@@ -24,17 +24,18 @@
 #define DEFAULT_CLICK_TIMEOUT 80 
 
 // Timeout for detecting a long-press [milliseconds]
-#define DEFAULT_PRESS_TIMEOUT 750
+#define DEFAULT_LONG_PRESS_TIMEOUT 750
 
 // Delay between two repetitions [milliseconds]
 #define DEFAULT_REPEAT_DELAY 60
 
-OneButton::OneButton(int pin, boolean activeLow) {
+OneButton::OneButton(int pin, boolean activeLow, boolean repeat) {
   pinMode(pin, INPUT); // sets pin as input
   _pin = pin;
+  _repeat = repeat;
 
   _clickTicks = DEFAULT_CLICK_TIMEOUT;
-  _pressTicks = DEFAULT_PRESS_TIMEOUT;
+  _longPressTicks = DEFAULT_LONG_PRESS_TIMEOUT;
   _repeatTicks = DEFAULT_REPEAT_DELAY;
 
   _state = WAIT_PRESS; // starting state: waiting for button to be pressed
@@ -58,7 +59,7 @@ void OneButton::setClickTicks(int ticks) {
 
 
 void OneButton::setPressTicks(int ticks) {
-  _pressTicks = ticks;
+  _longPressTicks = ticks;
 }
 
 
@@ -82,9 +83,8 @@ void OneButton::attachDoubleClick(callbackFunction newFunction) {
 }
 
 
-void OneButton::attachPress(callbackFunction newFunction, boolean repeat) {
-  _pressFunc = newFunction;
-  _repeat = repeat;
+void OneButton::attachLongPress(callbackFunction newFunction) {
+  _longPressFunc = newFunction;
 }
 
 
@@ -104,9 +104,13 @@ void OneButton::tick() {
        if (buttonLevel == _buttonReleased) {
          _state = WAIT_SECOND_CLICK;
        } else if ((buttonLevel == _buttonPressed)
-             && (now > _startTime + _pressTicks)) {
+             && (now > _startTime + _longPressTicks)) {
          _startTime = now;
-         if (_pressFunc) _pressFunc();
+         if (_repeat) {
+           if (_clickFunc) _clickFunc();
+         } else {
+           if (_longPressFunc) _longPressFunc();
+         }
          _state = IN_LONG_PRESS;
        }
        break;
@@ -134,7 +138,7 @@ void OneButton::tick() {
          _state = WAIT_PRESS;
        } else if (_repeat && (now > _startTime + _repeatTicks)) {
          _startTime = now;
-         if (_pressFunc) _pressFunc();
+         if (_clickFunc) _clickFunc();
        }  
        break;
   }
